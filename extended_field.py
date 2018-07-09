@@ -5,18 +5,27 @@ from pymongo import MongoClient
 from bson import ObjectId
 import bson
 
+configMeta = {
+'user': 'capillary',
+'password': '123',
+'host': '192.168.10.33',
+'database':'extended_fields_custom_data'
+}
+
+configMaster = {
+'user': 'capillary',
+'password': '123',
+'host': '192.168.10.33',
+'database':'masters'
+}
+
+ipMongo = '192.168.10.33'
+
+mongoCollection = 'customer_extended_fields'
 
 def getNewEfValueId(oldEfValueId, efId):
-	config = {
-	'user': 'capillary',
-	'password': '123',
-	'host': '192.168.10.33',
-	'database':'extended_fields_custom_data'
-	}
 
-
-
-	cnx = mysql.connector.connect(**config)
+	cnx = mysql.connector.connect(**configMeta)
 	cursor = cnx.cursor()
 
 	query = ("select value from  ef_"+str(efId)+"_extended_fields_values where id = "+str(oldEfValueId))
@@ -52,16 +61,9 @@ def getNewEfValueId(oldEfValueId, efId):
 
 
 if __name__ == "__main__":
-	config = {
-	'user': 'capillary',
-	'password': '123',
-	'host': '192.168.10.33',
-	'database':'masters'
-	}
 
 
-
-	cnx = mysql.connector.connect(**config)
+	cnx = mysql.connector.connect(**configMaster)
 	cursor = cnx.cursor()
 
 	query = ("select name,id from extended_fields where datatype = 'standard_string'")
@@ -78,15 +80,15 @@ if __name__ == "__main__":
 	print("list of all standerd string extended fields are below\n:")
 	print(nameIdDict)
 
-	mongoclient = MongoClient('192.168.10.33:27017')
+	mongoclient = MongoClient(ipMongo+':27017')
 	db = mongoclient.multi_profile
 
 
 	f = open("efupdate.txt","a")
 	i=0
 	try:
-		empCol = db.customer_extended_fields.find()
-		print '\n All data from customer_extended_fields mongo \n'
+		empCol = db[mongoCollection].find()
+		print "\n All data from %s mongo \n"%(mongoCollection)
 		for emp in empCol:
 			print emp["orgId"]
 			orgId = emp["orgId"]
@@ -99,7 +101,7 @@ if __name__ == "__main__":
 					print "id is "+ str(id)
 					if( len(id) > 0):
 						## update the doc here 
-						update = db.customer_extended_fields.update({"_id":ObjectId(emp["_id"]),"extendedFields.name":ef["name"]},{"$set":{"extendedFields.$.value":bson.Int64(id[0])}})
+						update = db[mongoCollection].update({"_id":ObjectId(emp["_id"]),"extendedFields.name":ef["name"]},{"$set":{"extendedFields.$.value":bson.Int64(id[0])}})
 						print(update)
 						i=i+1
 						f.write("updated doc %d : %s  new %s old %s\r\n" %((i),emp["_id"], str(id),ef["value"]))
